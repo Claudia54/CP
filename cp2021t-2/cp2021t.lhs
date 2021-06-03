@@ -127,15 +127,15 @@
 
 \begin{center}\large
 \begin{tabular}{ll}
-\textbf{Grupo} nr. & 999 (preencher)
+\textbf{Grupo} nr. & G075 (preencher)
 \\\hline
-a11111 & Nome1 (preencher)	
+a93320 & Augusto Campos	
 \\
-a22222 & Nome2 (preencher)	
+a93199 & Carlos Silva
 \\
-a33333 & Nome3 (preencher)	
+a93177 & Cláudia Silva
 \\
-a44444 & Nome4 (preencher, se aplicável, ou apagar)	
+a93182 & Tiago Silva
 \end{tabular}
 \end{center}
 
@@ -1039,11 +1039,13 @@ sd_gen = undefined
 ad_gen = undefined
 \end{code}
 
+
+
 \subsection*{Problema 2}
 Definir
 \begin{code}
 
-loop (funcao,aux1,aux2) =(funcao * (aux1)`div`(aux2) , aux1+4, aux2+1)
+loop (funcao,aux1,aux2) =(funcao *(aux1)`div`(aux2) , aux1+4, aux2+1)
 inic =(1,2,2)
 prj (funcao,aux1,aux2) =funcao
 \end{code}
@@ -1064,7 +1066,7 @@ Apresentar de seguida a justificação da solução encontrada.
 \begin{code}
 calcLine :: NPoint -> (NPoint -> OverTime NPoint)
 calcLine = cataList h where
-   h = undefined
+    h =undefined 
 
 deCasteljau :: [NPoint] -> OverTime NPoint
 deCasteljau = hyloAlgForm alg coalg where
