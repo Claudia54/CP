@@ -702,11 +702,11 @@ Verifique as suas funções testando a propriedade seguinte:
 A média de uma lista não vazia e de uma \LTree\ com os mesmos elementos coincide,
 a menos de um erro de 0.1 milésimas:
 \begin{code}
-prop_avg :: Ord a => [a] -> Property
+--prop_avg :: Ord a => [a] -> Property
 prop_avg = nonempty .==>. diff .<=. const 0.000001 where
-   diff l = avg l - (avgLTree . genLTree) l
-   genLTree = anaLTree lsplit
-   nonempty = (>[])
+ diff l = avg l - (avgLTree . genLTree) l
+ genLTree = anaLTree lsplit
+nonempty = (>[])
 \end{code}
 \end{propriedade}
 
@@ -1012,15 +1012,20 @@ optmize_eval a = hyloExpAr (gopt a) clean
 sd :: Floating a => ExpAr a -> ExpAr a
 sd = p2 . cataExpAr sd_gen
 
+
+
 ad :: Floating a => a -> ExpAr a -> a
 ad v = p2 . cataExpAr (ad_gen v)
 \end{code}
 Definir:
 
 \begin{code}
+
+--baseExp f g h = f-|- (g >< map h) --bifuntor 
+
 outExpAr = undefined 
 ---
-recExpAr = undefined
+recExpAr f = undefined
 ---
 g_eval_exp = undefined
 ---
@@ -1030,24 +1035,41 @@ gopt = undefined
 \end{code}
 
 \begin{code}
+
 sd_gen :: Floating a =>
-    Either () (Either a (Either (BinOp, ((ExpAr a, ExpAr a), (ExpAr a, ExpAr a))) (UnOp, (ExpAr a, ExpAr a)))) -> (ExpAr a, ExpAr a)
-sd_gen = undefined
+  Either () (Either a (Either (BinOp, ((ExpAr a, ExpAr a), (ExpAr a, ExpAr a))) (UnOp, (ExpAr a, ExpAr a)))) -> (ExpAr a, ExpAr a)
+sd_gen = either ( split (const X ) (N . const 1)) g where
+    g  = either (split (N) (N . const 0)) g1 
+    g1 = either g2 g3 
+    g2 ( Sum ,((e,dev),(e1,dev1)) )     = (Bin Sum e e1 ,Bin Sum dev dev1)
+    g2 ( Product ,((e,dev),(e1,dev1)) ) = (Bin Product e e1 , Bin Sum ( Bin Product e dev1) (Bin Product dev e1) )
+    g3 ( Negate ,( e,dev ))             = (Un Negate e, Un Negate dev)
+    g3 ( E ,(e,dev))                    = ((Un E e) , (Bin Product (Un E e) (dev)))
+
 \end{code}
 
 \begin{code}
-ad_gen = undefined
+ad_gen v = either (split (const v) (const 1 )) g1 where
+         g1 = either (split id (const 0)) g2 
+         g2 = either g3 g4 
+         g3(bin ,((e,dev),(e1,dev1)))     = if (bin == Sum ) then (e+e1,dev+dev1)
+                                            else (e*e1, (e*dev1)+ (dev*e1))
+         g4(un ,(e1,dev1))                = if (un == Negate) then (negate e1, negate dev1)
+                                            else (Prelude.exp e1 , Prelude.exp dev1*e1 )
+
+
 \end{code}
 
 
 
 \subsection*{Problema 2}
-Definir
+
 \begin{code}
 
 loop (funcao,aux1,aux2) =(funcao *(aux1)`div`(aux2) , aux1+4, aux2+1)
 inic =(1,2,2)
 prj (funcao,aux1,aux2) =funcao
+
 \end{code}
 por forma a que
 \begin{code}
@@ -1059,38 +1081,90 @@ cat = prj . (for loop inic)
 
 seja a função pretendida.
 \textbf{NB}: usar divisão inteira.
-Apresentar de seguida a justificação da solução encontrada.
+Justificação : recorrendo ao anexos B - programação dinâmica por recursividade múltipla -verifiquei que devia comecar por calcular 
+o elemento seguinte (succ) da serie de fibonacci e acabei por ficar com uma expressão. Após isso,modifiquei essa mesma expressão
+de modo a ficar com uma expressao a multiplicar pela inicial.Desde modo, verifiquei que se tratavam da divisao duas funções distintas.
+Após isso defini as respetivas funções e o seu caso de paragem. 
+
 
 \subsection*{Problema 3}
 
 \begin{code}
+
 calcLine :: NPoint -> (NPoint -> OverTime NPoint)
-calcLine = cataList h where
-    h =undefined 
+calcLine = cataList g  where
+    g=either g1 g2
+    g1 = const (const nil)
+    g2 (_,_) [] = nil
+    g2 (d,f) (x:xs) = \z -> concat $ (sequenceA [singl . linear1d d x, f xs]) z
+
+
+f2(x,y)= \pt ->(calcLine (x pt) (y pt)) pt
+
+--g2 :: (a, b1) -> (OverTime NPoint, b2)
+g2 []  = i1 nil 
+g2 [p] = i1 (const p)
+g2 l  = i2 (h1,x1)
+      where 
+          h1= (init l)
+          x1= (tail l)
 
 deCasteljau :: [NPoint] -> OverTime NPoint
 deCasteljau = hyloAlgForm alg coalg where
-   coalg = undefined
-   alg = undefined
+     coalg =g2  --divisao
+     alg  = either id  f2  --conquista 
 
-hyloAlgForm = undefined
+
+
+hyloAlgForm a b = cataLTree a. anaLTree b 
+
 \end{code}
+
+\textbf{NB}: 
+Justificação 
+1)Para a função calcLine iniciei por analisar a função original.Reparei que o gene necessario ia ser 
+uma função muito parecida à original g. Deste modo, alterei a função original de modo a ficar um catamorfismo,
+2) Para a função deCasteljau  iniciei por distinguir quais eram as fazes de divisao do hilomorfismo e as fazes 
+de conquista. De facto, verifiquei que  a fase de divisao ocorre na divisão em tail e em init e que a fase de conquista 
+ocorre quando se usa a funçao CalcLine. Deste modo, f2 trata-se da conquista e g2 da divisão. 
+Após identificar o que foi referido acima e de elaborar o codigo correspondente, criei a função hyloAlgForm que, 
+verifiquei que necessitava de usar a cataLTree e a anaLTree pois tratava-se de uma LTree( que verifiquei recorrendo a tabela de funtores 
+e ao ficheiro auxiliar).
 
 \subsection*{Problema 4}
 
 Solução para listas não vazias:
 \begin{code}
+
+outListavg [a] =i1 (a)
+outListavg (a:x) = i2(a,x)
+
+cataListavg :: (Either (b) (b, d) -> d) -> [b] -> d
+cataListavg g   = g . recList (cataListavg g) . outListavg  
+
 avg = p1.avg_aux
+
 \end{code}
 
 \begin{code}
-avg_aux = undefined
+
+avg_aux = cataListavg g where 
+    g = either aux1 aux2 where
+      aux1 c = (c,1)
+      aux2 (a,(b,c))= (((c*b+a) / (c+1)),c+1)
+
 \end{code}
+
 Solução para árvores de tipo \LTree:
 \begin{code}
 avgLTree = p1.cataLTree gene where
-   gene = undefined
+   gene =either funcao1 funcao2 where 
+   funcao1 (a) = ( a,1)
+   funcao2 ((a,b),(c,d)) = (((a*b)+(c*d))/(b+d),b+d)
+
 \end{code}
+\textbf{NB}: 
+Justificação : O problema 4 foi resolvido com o auxilio do diagrama. Deste modo, verifiquei que 
 
 \subsection*{Problema 5}
 Inserir em baixo o código \Fsharp\ desenvolvido, entre \verb!\begin{verbatim}! e \verb!\end{verbatim}!:
