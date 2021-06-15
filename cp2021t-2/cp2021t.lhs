@@ -11,6 +11,10 @@
 \definecolor{blue}{RGB}{0,0,255}
 \def\red{\color{red}}
 \def\blue{\color{blue}}
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[all]{xy}
+\usepackage{amsfonts} 
 %================= local x=====================================================%
 \def\getGif#1{\includegraphics[width=0.3\textwidth]{cp2021t_media/#1.png}}
 \let\uk=\emph
@@ -1021,17 +1025,30 @@ Definir:
 
 \begin{code}
 
---baseExp f g h = f-|- (g >< map h) --bifuntor 
+outExpAr X                = i1 ()
+outExpAr (N a)            = i2 ( i1  a)
+outExpAr (Bin op x1 x2)   = i2 ( i2 ( i1  (op, (x1 , x2))))
+outExpAr (Un op x)        = i2 ( i2 ( i2  (op, x)))
+---
+recExpAr f = baseExpAr id id id f f id f  
+---
+g_eval_exp a =  either (const a) g where
+              g  = either id g1 
+              g1 = either g2 g3 
+              g2 (bin, (y , y1)) |(bin == Sum) = (y + y1)
+                                 |(bin== Product ) =(y * y1)
+              g3 (un ,y)         |(un == Negate) = (negate y)
+                                 |(un == E) = (expd y)
+---
+clean X                = i1 ()
+clean (N a)            = i2 ( i1  a)
+clean (Bin op x1 x2)   = if ( op == Product && x1== N 0|| x2== N 0) then (i2 ( i1 0))
+                        else i2 ( i2 ( i1  (op, (x1 , x2))))
+clean (Un op x)        = if (op== E && x== N 0 ) then (i2 ( i1 1))
+                        else i2 ( i2 ( i2  (op, x)))
+---
+gopt a = g_eval_exp a
 
-outExpAr = undefined 
----
-recExpAr f = undefined
----
-g_eval_exp = undefined
----
-clean = undefined
----
-gopt = undefined 
 \end{code}
 
 \begin{code}
@@ -1049,16 +1066,41 @@ sd_gen = either ( split (const X ) (N . const 1)) g where
 \end{code}
 
 \begin{code}
-ad_gen v = either (split (const v) (const 1 )) g1 where
-         g1 = either (split id (const 0)) g2 
-         g2 = either g3 g4 
-         g3(bin ,((e,dev),(e1,dev1)))     = if (bin == Sum ) then (e+e1,dev+dev1)
-                                            else (e*e1, (e*dev1)+ (dev*e1))
-         g4(un ,(e1,dev1))                = if (un == Negate) then (negate e1, negate dev1)
-                                            else (Prelude.exp e1 , Prelude.exp dev1*e1 )
+
+ad_gen v = either (split (const v) (const 1 )) g1 where 
+    g1 = either (split id (const 0)) g2 
+    g2 = either g3 g4 
+    g3(op,((e,dev),(e1,dev1)) ) |op == Sum =(e+e1 ,dev1+dev1)
+                                |op == Product = (e*e1 ,(e*dev1)+(dev*e1))
+    g4(op,(e,dev)) | op == Negate = (negate (e), negate (dev))
+                   | op == E = (expd (e), (expd (e)*dev)) 
 
 
 \end{code}
+\textbf{NB}: Justificações : 1-Comecei por analisar as funções in e out dos outros módulos e ,deste modo,cheguei ao que era necessário fazer. 
+A partir dai vi o "caminho" que precisava seguir para chegar a cada um dos out's que queriamos, por exemplo, 
+para chegar mos a N a no 1º either escolhemos o segundo elemento (i2)  que também é um either onde aí, 
+escolhendo o 1º elemento (i1) chegamos a N a e assim temos i2 . i1
+
+\xymatrix{
+ExpArA\ar@/^1pc/[rr]^{out} && () + A + (BinOp x (AxA))+(UnOp x A )\ar@/^1pc/[ll]^{in} }
+
+2-Depois de analisar o type OutExpAr arranjei o type em eithers, ficando com [(const x), g], sendo g = [N a, g2] e sendo g2 = [g3, g4] 
+(g3 equivale às operações binarias e g4 às operações unarias). Como a função eval_exp recebe um valor para trocarmos por x,
+ onde temos (const x) trocamos por (const a) e depois passamos a identidade dos "a's" na expressão   trocamos "N a" por "id", 
+ de seguida apenas defini  as operações aritméticas.
+
+1.3 - Depois de analisar o enunciado chegou-se à conclusão de que gopt e g_eval_exp seriam iguais, já que em ambos os casos queremos chegar 
+ao resultado de uma expressão sendo dada a expressão e o valor do x. De maneira a melhorar a eficiência de optimaze_eval em relação à eval_exp
+usou-se a função clear para que sempre que encontra-se um zero como argumento da operação binária Product trocar a operação binária product pela constante 
+0 e  sempre que encontra-se um 0 como argumento a operação unitária E substitui-se a mesma pela constante 1.
+
+1.4 - Através desta função é calculada a derivada.Recorremos à expressao dada pelo professor para calcular os valores para a soma e para o produto.
+
+1.5 - A função ad_gen calcula a derivada logo dado um certo valor v. De facto, esta função não dá em todos os testes quickcheck. No entanto, não conseguimos
+arranjar outra solução . De facto, no primeiro either encontra-se um split split (const v) (const 1 ) relativo ao X e a sua derivada ( que sera 1).Em g esse 
+either é relativo a numeros constantes onde a sua derivada seria zero.Posteriormente, a resoluçao foi baseada nas formulas indicadas pelo professor. Tentamos também 
+outra versão usando como auxiliar a funçao eval_exp porém o erro continuava.
 
 
 
@@ -1080,10 +1122,10 @@ cat = prj . (for loop inic)
 
 
 seja a função pretendida.
-\textbf{NB}: usar divisão inteira.
+\textbf{NB}: 
 Justificação : recorrendo ao anexos B - programação dinâmica por recursividade múltipla -verifiquei que devia comecar por calcular 
 o elemento seguinte (succ) da serie de fibonacci e acabei por ficar com uma expressão. Após isso,modifiquei essa mesma expressão
-de modo a ficar com uma expressao a multiplicar pela inicial.Desde modo, verifiquei que se tratavam da divisao duas funções distintas.
+de modo a ficar com uma expressao a multiplicar pela inicial.Desde modo, verifiquei que se tratavam da divisao de duas funções distintas.
 Após isso defini as respetivas funções e o seu caso de paragem. 
 
 
@@ -1164,7 +1206,13 @@ avgLTree = p1.cataLTree gene where
 
 \end{code}
 \textbf{NB}: 
-Justificação : O problema 4 foi resolvido com o auxilio do diagrama. Deste modo, verifiquei que 
+Justificação : O problema 4 foi resolvido com o auxilio do diagrama. Foi necessário para a 4.1 definir uma nova cata pois o outList engloba o caso de lista vazia.
+1-
+\xymatrix{
+A*\ar[d]_{<avg,length>}\ar[r]&A+A\times A*\ar[d]^{id+idx<avg,length>}\\\mathbb{R}\times \mathbb{N}&A+A\times (\mathbb{R}\times \mathbb{N})\ar[l]\\ \\ \\}
+2-
+LTree A\ar[d]_{<avg,length>}\ar[r]&A+(LTree A\times LTree A)\ar[d]^{g}\\\mathbb{R}\times \mathbb{N}&A\times (\mathbb{R}\times \mathbb{N})^2\ar[l]\\ \\ \\}
+
 
 \subsection*{Problema 5}
 Inserir em baixo o código \Fsharp\ desenvolvido, entre \verb!\begin{verbatim}! e \verb!\end{verbatim}!:
