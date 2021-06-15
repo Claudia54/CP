@@ -1083,7 +1083,10 @@ para chegar mos a N a no 1º either escolhemos o segundo elemento (i2)  que tamb
 escolhendo o 1º elemento (i1) chegamos a N a e assim temos i2 . i1
 
 \xymatrix{
+  \begin{eqnarray*}
 ExpArA\ar@/^1pc/[rr]^{out} && () + A + (BinOp x (AxA))+(UnOp x A )\ar@/^1pc/[ll]^{in} }
+\end{eqnarray*}
+
 
 2-Depois de analisar o type OutExpAr arranjei o type em eithers, ficando com [(const x), g], sendo g = [N a, g2] e sendo g2 = [g3, g4] 
 (g3 equivale às operações binarias e g4 às operações unarias). Como a função eval_exp recebe um valor para trocarmos por x,
@@ -1209,9 +1212,13 @@ avgLTree = p1.cataLTree gene where
 Justificação : O problema 4 foi resolvido com o auxilio do diagrama. Foi necessário para a 4.1 definir uma nova cata pois o outList engloba o caso de lista vazia.
 1-
 \xymatrix{
+   \begin{eqnarray*}
 A*\ar[d]_{<avg,length>}\ar[r]&A+A\times A*\ar[d]^{id+idx<avg,length>}\\\mathbb{R}\times \mathbb{N}&A+A\times (\mathbb{R}\times \mathbb{N})\ar[l]\\ \\ \\}
+\end{eqnarray*}
 2-
+ \begin{eqnarray*}
 LTree A\ar[d]_{<avg,length>}\ar[r]&A+(LTree A\times LTree A)\ar[d]^{g}\\\mathbb{R}\times \mathbb{N}&A\times (\mathbb{R}\times \mathbb{N})^2\ar[l]\\ \\ \\}
+\end{eqnarray*}
 
 
 \subsection*{Problema 5}
